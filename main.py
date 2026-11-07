@@ -1,9 +1,7 @@
 from fastapi import FastAPI
-app= FastAPI(title='API Bibliotheque')
-@app.get("/")
-def accueil():
-    return {'message':'Bonjour atelier !'}
 from pydantic import BaseModel, ConfigDict, Field
+from fastapi.middleware.cors import CORSMiddleware
+
 
 class LivreIn(BaseModel):                 # ce que le client envoie
     model_config = ConfigDict(str_strip_whitespace=True)
@@ -34,7 +32,15 @@ async def lifespan(app: FastAPI):
     yield
 
 app = FastAPI(title="API Bibliothèque", lifespan=lifespan)
-
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:5173",
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 def get_db():
     conn = sqlite3.connect(DB, check_same_thread=False)
     conn.row_factory = sqlite3.Row
@@ -44,6 +50,9 @@ def get_db():
         conn.close()             # toujours fermée, même en cas d'erreur
 
 Db = Annotated[sqlite3.Connection, Depends(get_db)]
+@app.get('/')
+def accueil():
+    return {'message':'Bonjour Atelier'}
 #1- lire
 def lire_ou_404(db: sqlite3.Connection, livre_id: int) -> dict:
     ligne = db.execute(
